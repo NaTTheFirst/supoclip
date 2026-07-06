@@ -1,8 +1,9 @@
 services:
-  # 1. Backend API Service
+  # 1. Backend API Service (Free Web Service)
   - type: web
     name: supoclip-backend
     env: docker
+    plan: free
     dockerContext: .
     dockerfilePath: backend/Dockerfile
     envVars:
@@ -16,19 +17,20 @@ services:
           name: supoclip-redis
           property: host
       - key: ASSEMBLY_AI_API_KEY
-        sync: false # You will enter this in the Render Dashboard
+        sync: false 
       - key: LLM
         value: "google-gla:gemini-3-flash-preview"
       - key: GOOGLE_API_KEY
         sync: false
 
-  # 2. Background Video Processing Worker
-  - type: worker
+  # 2. Background Worker (Hacked as a Free Web Service)
+  - type: web
     name: supoclip-worker
     env: docker
+    plan: free
     dockerContext: .
     dockerfilePath: backend/Dockerfile
-    # This command overrides the default FastAPI start to run the background worker instead
+    # Overrides FastAPI to run the worker instead
     command: python -m arq worker.WorkerSettings
     envVars:
       - key: DATABASE_URL
@@ -47,10 +49,11 @@ services:
       - key: GOOGLE_API_KEY
         sync: false
 
-  # 3. Frontend Service
+  # 3. Frontend Service (Free Web Service)
   - type: web
     name: supoclip-frontend
     env: docker
+    plan: free
     dockerContext: .
     dockerfilePath: frontend/Dockerfile
     envVars:
@@ -63,9 +66,13 @@ services:
         generateValue: true
 
 databases:
+  # Free Postgres (Warning: Deletes in 30 days)
   - name: supoclip-postgres
     databaseName: supoclip
     user: supoclip
+    plan: free
 
 redis:
+  # Free Redis (25MB limit)
   - name: supoclip-redis
+    plan: free
