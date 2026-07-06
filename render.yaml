@@ -1,0 +1,71 @@
+services:
+  # 1. Backend API Service
+  - type: web
+    name: supoclip-backend
+    env: docker
+    dockerContext: .
+    dockerfilePath: backend/Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: supoclip-postgres
+          property: connectionString
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: supoclip-redis
+          property: host
+      - key: ASSEMBLY_AI_API_KEY
+        sync: false # You will enter this in the Render Dashboard
+      - key: LLM
+        value: "google-gla:gemini-3-flash-preview"
+      - key: GOOGLE_API_KEY
+        sync: false
+
+  # 2. Background Video Processing Worker
+  - type: worker
+    name: supoclip-worker
+    env: docker
+    dockerContext: .
+    dockerfilePath: backend/Dockerfile
+    # This command overrides the default FastAPI start to run the background worker instead
+    command: python -m arq worker.WorkerSettings
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: supoclip-postgres
+          property: connectionString
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: supoclip-redis
+          property: host
+      - key: ASSEMBLY_AI_API_KEY
+        sync: false
+      - key: LLM
+        value: "google-gla:gemini-3-flash-preview"
+      - key: GOOGLE_API_KEY
+        sync: false
+
+  # 3. Frontend Service
+  - type: web
+    name: supoclip-frontend
+    env: docker
+    dockerContext: .
+    dockerfilePath: frontend/Dockerfile
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: supoclip-backend
+          property: srv
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+
+databases:
+  - name: supoclip-postgres
+    databaseName: supoclip
+    user: supoclip
+
+redis:
+  - name: supoclip-redis
